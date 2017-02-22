@@ -6,7 +6,8 @@ This program finds and reports the k number of closest neighbour for each data p
 import pandas as pd
 import sys
 
-data = pd.read_csv('data/Income.csv')
+trainData = pd.read_csv('data/Income.csv')
+testData = pd.read_csv('data/Income_Test.csv')
 k = int(sys.argv[1])
 
 def ageSim(p,q):
@@ -82,35 +83,54 @@ def sim(p,q):
     similarity = w*(ageSim(p,q))+ w*(workclassSim(p,q))+ w*(eduSim(p,q))+w*(maritalSim(p,q))+ w*(occuSim(p,q))+ w*(relationSim(p,q))+ w*(raceSim(p,q))+ w*(genderSim(p,q))+ w*(capitalSim(p,q))+ w*(workHourSim(p,q))+ w*(countrySim(p,q))
     return similarity
 
-sys.stdout.write("Transaction ID  1st ID  1st Prox")
-sys.stdout.write("\t2nd ID  2nd Prox")
-sys.stdout.write("\t3rd ID  3rd Prox")
-for i in range(4,k+1):
-    sys.stdout.write("\t{0}th ID  {0}th Prox".format(i))
+def predict(list):
+    aboveFifty =0
+    belowFifty =0
+    #print(list[0][0][15])
+    for i in range(k):
+        if list[i][0][15]==' <=50K':
+            belowFifty +=1
+        elif list[i][0][4]==' >50K':
+            aboveFifty +=1
+    answer = max(aboveFifty,belowFifty)
+    prediction =''
+    if answer == belowFifty:
+        prediction = ' <=50K'
+    elif answer == aboveFifty:
+        prediction = ' >50K'
+    return prediction
 
+sys.stdout.write("Transaction ID  Actual Class  Predicted Class  Posterior Probability")
 
+dataCount= 0
+errorCount=0
 print
 #print('Transaction ID   1st ID  1st Prox  \t\t\t2nd ID  2nd Prox   \t\t\t3rd ID  3rd Prox   \t\t\t4th ID  4th Prox   \t\t\t5th ID  5th Prox')
-for i in range(data.__len__()):
-    p = data.iloc[i]
+for i in range(testData.__len__()):
+    dataCount +=1
+    p = testData.iloc[i]
     list = []
-    for j in range(data.__len__()):
-        q= data.iloc[j]
-        if q.ID != p.ID:
-            similarity = sim(p,q)
-            #print(similarity)
-            tupl = (q, similarity)
-            if len(list) <= k:
-                list.append(tupl)
-            else:
-                for x in range(k):
-                    if similarity > list[x][1]:
-                        del list[x]
-                        list.append(tupl)
-                        break
-    for y in range(k):
-        sys.stdout.write("{0}".format(i+1))
-        sys.stdout.write("\t\t {0}".format(list[y][0].ID))
-        sys.stdout.write("\t{0}".format(list[y][1]))
-    print
+    for j in range(trainData.__len__()):
+        q= trainData.iloc[j]
+        #if q.ID != p.ID:
+        similarity = sim(p,q)
+        #print(similarity)
+        tupl = (q, similarity)
+        if len(list) <= k:
+            list.append(tupl)
+        else:
+            for x in range(k):
+                if similarity > list[x][1]:
+                    del list[x]
+                    list.append(tupl)
+                    break
+    prediction = predict(list)
+    if prediction != p[15]:
+        errorCount +=1
+    sys.stdout.write('\t{0}\t{1}'.format(dataCount, p[15]))
+    print('\t\t{0}\t\t'.format(prediction))
+
+print('Total data: {0}'.format(dataCount))
+print('Error Count: {0}'.format(errorCount))
+
 
